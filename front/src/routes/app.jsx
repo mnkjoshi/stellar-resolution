@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import OpenSeadragon from "openseadragon";
 import { setupStarOverlays } from "../utils/stars";
-import Annotorious from '@recogito/annotorious-openseadragon';
-import '@recogito/annotorious-openseadragon/dist/annotorious.min.css';
+import Annotorious from "@recogito/annotorious-openseadragon";
+import "@recogito/annotorious-openseadragon/dist/annotorious.min.css";
 
 const UNWISE = "unwise";
 const ANDROMEDA = "andromeda";
@@ -12,10 +12,13 @@ export default function App() {
     const osdContainerRef = useRef(null);
     const marsContainerRef = useRef(null);
     const viewerInstanceRef = useRef(null);
-    const starApiRef = useRef({ updateBrightStars: () => {}, clearStarOverlays: () => {} });
+    const starApiRef = useRef({
+        updateBrightStars: () => {},
+        clearStarOverlays: () => {},
+    });
     const [selected, setSelected] = useState(UNWISE);
-    const [annotations, setAnnotations] = useState([])
-    const [anno, setAnno] = useState(null)
+    const [annotations, setAnnotations] = useState([]);
+    const [anno, setAnno] = useState(null);
 
     const unwiseSource = {
         type: "unwise-neo6",
@@ -26,13 +29,13 @@ export default function App() {
         maxLevel: 11,
         getTileUrl: function (level, x, y) {
             return (
-            "https://s3.us-west-2.amazonaws.com/unwise-neo6.legacysurvey.org/" +
-            level +
-            "/" +
-            x +
-            "/" +
-            y +
-            ".jpg"
+                "https://s3.us-west-2.amazonaws.com/unwise-neo6.legacysurvey.org/" +
+                level +
+                "/" +
+                x +
+                "/" +
+                y +
+                ".jpg"
             );
         },
     };
@@ -41,7 +44,8 @@ export default function App() {
         type: "zoomifytileservice",
         width: 69536,
         height: 22230,
-        tilesUrl: "https://cdn.esahubble.org/archives/images/zoomable/heic1502a/",
+        tilesUrl:
+            "https://cdn.esahubble.org/archives/images/zoomable/heic1502a/",
     };
 
     useEffect(() => {
@@ -62,21 +66,23 @@ export default function App() {
         const annotate = Annotorious(viewerInstanceRef.current, config);
         setAnno(annotate);
 
-        annotate.on('createAnnotation', (annotation) => {
-            console.log('createAnnotation', annotation);
+        annotate.on("createAnnotation", (annotation) => {
+            console.log("createAnnotation", annotation);
         });
 
-        annotate.on('updateAnnotation', (annotation, previous) => {
-            const newAnnotations = annotations.map(val => {
-                if (val.id === annotation.id) return annotation
-                return val
-            })
-            setAnnotations(newAnnotations)
+        annotate.on("updateAnnotation", (annotation, previous) => {
+            const newAnnotations = annotations.map((val) => {
+                if (val.id === annotation.id) return annotation;
+                return val;
+            });
+            setAnnotations(newAnnotations);
         });
 
-        annotate.on('deleteAnnotation', (annotation) => {
-            const newAnnotations = annotations.filter(val => val.id !== annotation.id)
-            setAnnotations(newAnnotations)
+        annotate.on("deleteAnnotation", (annotation) => {
+            const newAnnotations = annotations.filter(
+                (val) => val.id !== annotation.id
+            );
+            setAnnotations(newAnnotations);
         });
 
         // Setup star overlays
@@ -85,7 +91,8 @@ export default function App() {
         // Cleanup on unmount
         return () => {
             try {
-                viewerInstanceRef.current && viewerInstanceRef.current.destroy();
+                viewerInstanceRef.current &&
+                    viewerInstanceRef.current.destroy();
                 viewerInstanceRef.current = null;
             } catch (e) {
                 // ignore
@@ -99,7 +106,7 @@ export default function App() {
         const osdEl = osdContainerRef.current;
         const marsContainer = marsContainerRef.current;
         const MARS_IFRAME_SRC =
-        "https://murray-lab.caltech.edu/CTX/V01/SceneView/MurrayLabCTXmosaic.html";
+            "https://murray-lab.caltech.edu/CTX/V01/SceneView/MurrayLabCTXmosaic.html";
 
         function showOSD() {
             marsContainer.style.display = "none";
@@ -130,13 +137,13 @@ export default function App() {
             showOSD();
             viewer.open(
                 {
-                type: unwiseSource.type,
-                width: unwiseSource.width,
-                height: unwiseSource.height,
-                tileSize: unwiseSource.tileSize,
-                minLevel: unwiseSource.minLevel,
-                maxLevel: unwiseSource.maxLevel,
-                getTileUrl: unwiseSource.getTileUrl,
+                    type: unwiseSource.type,
+                    width: unwiseSource.width,
+                    height: unwiseSource.height,
+                    tileSize: unwiseSource.tileSize,
+                    minLevel: unwiseSource.minLevel,
+                    maxLevel: unwiseSource.maxLevel,
+                    getTileUrl: unwiseSource.getTileUrl,
                 },
                 /* immediately */ true
             );
@@ -185,7 +192,11 @@ export default function App() {
             <div
                 id="openseadragon-viewer"
                 ref={osdContainerRef}
-                style={{ width: "100%", height: "90vh", backgroundColor: "#000" }}
+                style={{
+                    width: "100%",
+                    height: "90vh",
+                    backgroundColor: "#000",
+                }}
             ></div>
 
             <div
