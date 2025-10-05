@@ -1,13 +1,12 @@
 body,
 html {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  font-family: 'Lexend', sans-serif;
-  /* Adjust the color to match the exact background of your image */
-  overflow-x: hidden;
-  overflow-y: hidden;
-  
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    font-family: "Lexend", sans-serif;
+    /* Adjust the color to match the exact background of your image */
+    overflow-x: hidden;
+    overflow-y: hidden;
 }
 
 .html {
@@ -15,7 +14,7 @@ html {
     mix-blend-mode: difference;
 }
 
-p { 
+p {
     margin: 0;
 }
 
@@ -24,10 +23,7 @@ p {
     height: 100%;
 }
 
-
-
 @media (width <= 400px) {
-
     .landing-welcome {
         font-size: 250%;
         margin-left: 0%;
@@ -36,5 +32,4 @@ p {
     .landing-toggles {
         font-size: 16px;
     }
-    
 }
