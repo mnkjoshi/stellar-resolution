@@ -264,7 +264,13 @@ export default function App() {
 	}
 
 	return (
-		<div>
+		<div
+			style={{
+				maxHeight: '100vh',
+				overflowY: 'auto',
+				padding: '1rem',
+			}}
+		>
 			{/* --- Controls --- */}
 			<div id="controls">
 				<input
