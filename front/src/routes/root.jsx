@@ -15,24 +15,29 @@ export default function Root() {
         const ctx = canvas.getContext("2d");
 
         // size canvas to its container (landing-main)
-            function resize() {
-                const parent = canvas.parentElement;
-                const w = parent.clientWidth || window.innerWidth;
-                const h = parent.clientHeight || window.innerHeight;
-                canvas.width = w;
-                canvas.height = h;
-                // re-setup stars for new size
-                setup();
-            }
+        // declare sizing variables early so resize/setup won't hit TDZ
+        let canvasWidth = 0;
+        let canvasHeight = 0;
 
-            resize();
-            window.addEventListener("resize", resize);
+        let centerX = 0;
+        let centerY = 0;
 
-        let canvasWidth = canvas.width;
-        let canvasHeight = canvas.height;
+        function resize() {
+            const parent = canvas.parentElement;
+            const w = parent.clientWidth || window.innerWidth;
+            const h = parent.clientHeight || window.innerHeight;
+            canvas.width = w;
+            canvas.height = h;
+            // update sizing dependent values BEFORE setup
+            canvasWidth = canvas.width;
+            canvasHeight = canvas.height;
+            centerX = canvasWidth * 0.5;
+            centerY = canvasHeight * 0.5;
+            // re-setup stars for new size
+            setup();
+        }
 
-        let centerX = canvasWidth * 0.5;
-        let centerY = canvasHeight * 0.5;
+    // do not call resize/setup here - wait until Star class and setup are defined
 
         const numberOfStars = 500;
         const frames_per_second = 60;
@@ -80,12 +85,13 @@ export default function Root() {
                     this.speed = getRandomInt(1, 5);
                 }
 
-                // avoid division by zero
-                const xRatio = this.x / Math.max(1, this.counter);
-                const yRatio = this.y / Math.max(1, this.counter);
+                // project x,y from a center-origin perspective so stars radiate from center
+                const depth = Math.max(1, this.counter);
+                const normX = this.x / depth; // roughly in range [-centerX/depth, centerX/depth]
+                const normY = this.y / depth;
 
-                const starX = remap(xRatio, -1, 1, 0, canvasWidth);
-                const starY = remap(yRatio, -1, 1, 0, canvasHeight);
+                const starX = centerX + normX * centerX;
+                const starY = centerY + normY * centerY;
 
                 this.radius = remap(this.counter, 0, canvasWidth, this.radiusMax, 0);
 
@@ -110,7 +116,9 @@ export default function Root() {
             }
         }
 
-        setup();
+        // initialize canvas size and stars once Star and setup are defined
+        resize();
+        window.addEventListener("resize", resize);
 
         function draw(timestamp) {
             currentTime = timestamp;
@@ -133,21 +141,10 @@ export default function Root() {
 
         animationRef.current = requestAnimationFrame(draw);
 
-        // Re-setup on resize so stars scale properly
-        const resizeObserver = () => {
-            // small timeout to allow layout to settle
-            setTimeout(() => {
-                setup();
-            }, 50);
-        };
-
-        window.addEventListener("resize", resizeObserver);
-
-        return () => {
-            if (animationRef.current) cancelAnimationFrame(animationRef.current);
-            window.removeEventListener("resize", resize);
-            window.removeEventListener("resize", resizeObserver);
-        };
+            return () => {
+                if (animationRef.current) cancelAnimationFrame(animationRef.current);
+                window.removeEventListener("resize", resize);
+            };
     }, []);
 
     return (
