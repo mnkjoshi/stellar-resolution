@@ -74,3 +74,65 @@ p {
         font-size: 16px;
     }
 }
+
+
+.landing-main {
+    height: 100%;
+    width: 100%;
+    background-color: #122330;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    
+}
+
+.landing-logo {
+    width: 300px;
+    height: 300px;
+    margin-bottom: 00px;
+    z-index: 1;
+}
+
+.landing-title {
+    font-size: 60px;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    margin-bottom: 10px;
+    font-family: "Lexend", sans-serif;
+    z-index: 1;
+}
+
+.landing-subtitle {
+    font-size: 20px;
+    font-weight: 400;
+    color: white;
+    margin: 0;
+    margin-bottom: 20px;
+    font-family: "Lexend", sans-serif;
+    z-index: 1;
+}
+
+.landing-button {
+    padding: 15px 30px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #122330;
+    background-color: #ffcc00;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    z-index: 1;
+}
+
+.outerspace {
+    position: absolute;
+    background-color: transparent;
+    top: 0;
+    left: 0;
+    height: 100%;   
+    width: 100%;
+    z-index: 0;
+}
