@@ -42,7 +42,7 @@ export default function App() {
     };
 
     const andromedaSource = {
-        type: "zoomifytileservice",
+        type: "andromeda",
         width: 69536,
         height: 22230,
         tilesUrl:
