@@ -3,6 +3,7 @@ import OpenSeadragon from "openseadragon";
 import { setupStarOverlays } from "../utils/stars";
 import Annotorious from "@recogito/annotorious-openseadragon";
 import "@recogito/annotorious-openseadragon/dist/annotorious.min.css";
+import MarsAnnotationMap from "./mars.jsx";
 
 const UNWISE = "unwise";
 const ANDROMEDA = "andromeda";
@@ -119,16 +120,7 @@ export default function App() {
         function showMarsIframe() {
             osdEl.style.display = "none";
             starApiRef.current.clearStarOverlays();
-            if (!marsContainer.querySelector("iframe")) {
-                const iframe = document.createElement("iframe");
-                iframe.src = MARS_IFRAME_SRC;
-                iframe.setAttribute("scrolling", "no");
-                iframe.setAttribute("marginheight", "0");
-                iframe.setAttribute("marginwidth", "0");
-                iframe.setAttribute("title", "Mars CTX Scene Viewer");
-                marsContainer.appendChild(iframe);
-            }
-            marsContainer.style.display = "block";
+            marsContainer.innerHTML = "";
         }
 
         starApiRef.current.clearStarOverlays();
@@ -198,6 +190,8 @@ export default function App() {
                     backgroundColor: "#000",
                 }}
             ></div>
+
+            {selected === MARS && <MarsAnnotationMap />}
 
             <div
                 id="mars-frame-container"
