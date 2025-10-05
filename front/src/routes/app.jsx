@@ -1,177 +1,200 @@
 import React, { useEffect, useRef, useState } from "react";
 import OpenSeadragon from "openseadragon";
 import { setupStarOverlays } from "../utils/stars";
+import Annotorious from '@recogito/annotorious-openseadragon';
+import '@recogito/annotorious-openseadragon/dist/annotorious.min.css';
 
 const UNWISE = "unwise";
 const ANDROMEDA = "andromeda";
 const MARS = "mars";
 
 export default function App() {
-  const viewerRef = useRef(null);
-  const osdContainerRef = useRef(null);
-  const marsContainerRef = useRef(null);
-  const [selected, setSelected] = useState(UNWISE);
-  const viewerInstanceRef = useRef(null);
-  const starApiRef = useRef({ updateBrightStars: () => {}, clearStarOverlays: () => {} });
+    const osdContainerRef = useRef(null);
+    const marsContainerRef = useRef(null);
+    const viewerInstanceRef = useRef(null);
+    const starApiRef = useRef({ updateBrightStars: () => {}, clearStarOverlays: () => {} });
+    const [selected, setSelected] = useState(UNWISE);
+    const [annotations, setAnnotations] = useState([])
+    const [anno, setAnno] = useState(null)
 
-  useEffect(() => {
-    // Define tile sources
     const unwiseSource = {
-      type: "unwise-neo6",
-      width: Math.pow(2, 11) * 256,
-      height: Math.pow(2, 11) * 256,
-      tileSize: 256,
-      minLevel: 1,
-      maxLevel: 11,
-      getTileUrl: function (level, x, y) {
-        return (
-          "https://s3.us-west-2.amazonaws.com/unwise-neo6.legacysurvey.org/" +
-          level +
-          "/" +
-          x +
-          "/" +
-          y +
-          ".jpg"
-        );
-      },
+        type: "unwise-neo6",
+        width: Math.pow(2, 11) * 256,
+        height: Math.pow(2, 11) * 256,
+        tileSize: 256,
+        minLevel: 1,
+        maxLevel: 11,
+        getTileUrl: function (level, x, y) {
+            return (
+            "https://s3.us-west-2.amazonaws.com/unwise-neo6.legacysurvey.org/" +
+            level +
+            "/" +
+            x +
+            "/" +
+            y +
+            ".jpg"
+            );
+        },
     };
 
     const andromedaSource = {
-      type: "zoomifytileservice",
-      width: 69536,
-      height: 22230,
-      tilesUrl: "https://cdn.esahubble.org/archives/images/zoomable/heic1502a/",
+        type: "zoomifytileservice",
+        width: 69536,
+        height: 22230,
+        tilesUrl: "https://cdn.esahubble.org/archives/images/zoomable/heic1502a/",
     };
 
-    // Init OSD
-    viewerInstanceRef.current = OpenSeadragon({
-      element: osdContainerRef.current,
-      prefixUrl:
-        "https://cdn.jsdelivr.net/npm/openseadragon@4.1.0/build/openseadragon/images/",
-      tileSources: unwiseSource,
-      showNavigationControl: true,
-      showZoomControl: true,
-      showHomeControl: true,
-      showFullPageControl: true,
-      animationTime: 1.2,
-    });
+    useEffect(() => {
+        // Init OSD
+        viewerInstanceRef.current = OpenSeadragon({
+            element: osdContainerRef.current,
+            prefixUrl:
+                "https://cdn.jsdelivr.net/npm/openseadragon@4.1.0/build/openseadragon/images/",
+            tileSources: unwiseSource,
+            showNavigationControl: true,
+            showZoomControl: true,
+            showHomeControl: true,
+            showFullPageControl: true,
+            animationTime: 1.2,
+        });
 
-    // Setup star overlays
-    starApiRef.current = setupStarOverlays(viewerInstanceRef.current);
+        const config = {};
+        const annotate = Annotorious(viewerInstanceRef.current, config);
+        setAnno(annotate);
 
-    // Cleanup on unmount
-    return () => {
-      try {
-        viewerInstanceRef.current && viewerInstanceRef.current.destroy();
-        viewerInstanceRef.current = null;
-      } catch (e) {
-        // ignore
-      }
-    };
-  }, []);
+        annotate.on('createAnnotation', (annotation) => {
+            console.log('createAnnotation', annotation);
+        });
 
-  useEffect(() => {
-    // Toggle views based on `selected`
-    const viewer = viewerInstanceRef.current;
-    const osdEl = osdContainerRef.current;
-    const marsContainer = marsContainerRef.current;
-    const MARS_IFRAME_SRC =
-      "https://murray-lab.caltech.edu/CTX/V01/SceneView/MurrayLabCTXmosaic.html";
+        annotate.on('updateAnnotation', (annotation, previous) => {
+            const newAnnotations = annotations.map(val => {
+                if (val.id === annotation.id) return annotation
+                return val
+            })
+            setAnnotations(newAnnotations)
+        });
 
-    function showOSD() {
-      marsContainer.style.display = "none";
-      marsContainer.innerHTML = "";
-      osdEl.style.display = "block";
-      viewer.viewport && viewer.viewport.goHome(true);
-      viewer.forceRedraw();
-    }
+        annotate.on('deleteAnnotation', (annotation) => {
+            const newAnnotations = annotations.filter(val => val.id !== annotation.id)
+            setAnnotations(newAnnotations)
+        });
 
-    function showMarsIframe() {
-      osdEl.style.display = "none";
-      starApiRef.current.clearStarOverlays();
-      if (!marsContainer.querySelector("iframe")) {
-        const iframe = document.createElement("iframe");
-        iframe.src = MARS_IFRAME_SRC;
-        iframe.setAttribute("scrolling", "no");
-        iframe.setAttribute("marginheight", "0");
-        iframe.setAttribute("marginwidth", "0");
-        iframe.setAttribute("title", "Mars CTX Scene Viewer");
-        marsContainer.appendChild(iframe);
-      }
-      marsContainer.style.display = "block";
-    }
+        // Setup star overlays
+        starApiRef.current = setupStarOverlays(viewerInstanceRef.current);
 
-    starApiRef.current.clearStarOverlays();
+        // Cleanup on unmount
+        return () => {
+            try {
+                viewerInstanceRef.current && viewerInstanceRef.current.destroy();
+                viewerInstanceRef.current = null;
+            } catch (e) {
+                // ignore
+            }
+        };
+    }, []);
 
-    if (selected === UNWISE) {
-      showOSD();
-      viewer.open(
-        {
-          type: unwiseSource.type,
-          width: unwiseSource.width,
-          height: unwiseSource.height,
-          tileSize: unwiseSource.tileSize,
-          minLevel: unwiseSource.minLevel,
-          maxLevel: unwiseSource.maxLevel,
-          getTileUrl: unwiseSource.getTileUrl,
-        },
-        /* immediately */ true
-      );
-    } else if (selected === ANDROMEDA) {
-      showOSD();
-      viewer.open(andromedaSource);
-    } else if (selected === MARS) {
-      showMarsIframe();
-    }
-  }, [selected]);
+    useEffect(() => {
+        // Toggle views based on `selected`
+        const viewer = viewerInstanceRef.current;
+        const osdEl = osdContainerRef.current;
+        const marsContainer = marsContainerRef.current;
+        const MARS_IFRAME_SRC =
+        "https://murray-lab.caltech.edu/CTX/V01/SceneView/MurrayLabCTXmosaic.html";
 
-  return (
-    <div>
-      <div id="controls">
-        <input
-          type="radio"
-          id="unwise"
-          name="viewer_select"
-          value={UNWISE}
-          checked={selected === UNWISE}
-          onChange={() => setSelected(UNWISE)}
-        />
-        <label htmlFor="unwise">Unwise Neo6</label>
+        function showOSD() {
+            marsContainer.style.display = "none";
+            marsContainer.innerHTML = "";
+            osdEl.style.display = "block";
+            viewer.viewport && viewer.viewport.goHome(true);
+            viewer.forceRedraw();
+        }
 
-        <input
-          type="radio"
-          id="andromeda"
-          name="viewer_select"
-          value={ANDROMEDA}
-          checked={selected === ANDROMEDA}
-          onChange={() => setSelected(ANDROMEDA)}
-        />
-        <label htmlFor="andromeda">Andromeda Galaxy</label>
+        function showMarsIframe() {
+            osdEl.style.display = "none";
+            starApiRef.current.clearStarOverlays();
+            if (!marsContainer.querySelector("iframe")) {
+                const iframe = document.createElement("iframe");
+                iframe.src = MARS_IFRAME_SRC;
+                iframe.setAttribute("scrolling", "no");
+                iframe.setAttribute("marginheight", "0");
+                iframe.setAttribute("marginwidth", "0");
+                iframe.setAttribute("title", "Mars CTX Scene Viewer");
+                marsContainer.appendChild(iframe);
+            }
+            marsContainer.style.display = "block";
+        }
 
-        <input
-          type="radio"
-          id="mars"
-          name="viewer_select"
-          value={MARS}
-          checked={selected === MARS}
-          onChange={() => setSelected(MARS)}
-        />
-        <label htmlFor="mars">Mars</label>
-      </div>
+        starApiRef.current.clearStarOverlays();
 
-      <div
-        id="openseadragon-viewer"
-        ref={osdContainerRef}
-        style={{ width: "100%", height: "90vh", backgroundColor: "#000" }}
-      ></div>
+        if (selected === UNWISE) {
+            showOSD();
+            viewer.open(
+                {
+                type: unwiseSource.type,
+                width: unwiseSource.width,
+                height: unwiseSource.height,
+                tileSize: unwiseSource.tileSize,
+                minLevel: unwiseSource.minLevel,
+                maxLevel: unwiseSource.maxLevel,
+                getTileUrl: unwiseSource.getTileUrl,
+                },
+                /* immediately */ true
+            );
+        } else if (selected === ANDROMEDA) {
+            showOSD();
+            viewer.open(andromedaSource);
+        } else if (selected === MARS) {
+            showMarsIframe();
+        }
+    }, [selected]);
 
-      <div
-        id="mars-frame-container"
-        aria-label="Mars CTX Scene Viewer"
-        role="region"
-        ref={marsContainerRef}
-        style={{ width: "100%", height: "90vh", display: "none" }}
-      ></div>
-    </div>
-  );
+    return (
+        <div>
+            <div id="controls">
+                <input
+                    type="radio"
+                    id="unwise"
+                    name="viewer_select"
+                    value={UNWISE}
+                    checked={selected === UNWISE}
+                    onChange={() => setSelected(UNWISE)}
+                />
+                <label htmlFor="unwise">Unwise Neo6</label>
+
+                <input
+                    type="radio"
+                    id="andromeda"
+                    name="viewer_select"
+                    value={ANDROMEDA}
+                    checked={selected === ANDROMEDA}
+                    onChange={() => setSelected(ANDROMEDA)}
+                />
+                <label htmlFor="andromeda">Andromeda Galaxy</label>
+
+                <input
+                    type="radio"
+                    id="mars"
+                    name="viewer_select"
+                    value={MARS}
+                    checked={selected === MARS}
+                    onChange={() => setSelected(MARS)}
+                />
+                <label htmlFor="mars">Mars</label>
+            </div>
+
+            <div
+                id="openseadragon-viewer"
+                ref={osdContainerRef}
+                style={{ width: "100%", height: "90vh", backgroundColor: "#000" }}
+            ></div>
+
+            <div
+                id="mars-frame-container"
+                aria-label="Mars CTX Scene Viewer"
+                role="region"
+                ref={marsContainerRef}
+                style={{ width: "100%", height: "90vh", display: "none" }}
+            ></div>
+        </div>
+    );
 }
