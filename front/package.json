@@ -11,6 +11,7 @@
     "deploy": "vite build && firebase deploy"
   },
   "dependencies": {
+    "@arcgis/core": "^4.33.14",
     "@recogito/annotorious-openseadragon": "^2.7.18",
     "firebase": "^12.3.0",
     "openseadragon": "^5.0.1",
