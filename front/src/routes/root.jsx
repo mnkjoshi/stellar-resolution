@@ -153,7 +153,7 @@ export default function Root() {
             <img className="landing-logo" src="../logoT.png" alt="Stellar Resolution Logo" />
             <p className="landing-title"> Stellar Resolution </p>
             <p className="landing-subtitle"> Your Gateway to the Stars </p>
-            <button className= "landing-button"onClick={() => navigate("/app")}>Take-off</button>
+            <button className="landing-button" onClick={() => navigate("/app")}>Take-off</button>
         </div>
     );
 }

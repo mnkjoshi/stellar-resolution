@@ -264,102 +264,97 @@ export default function App() {
 	}
 
 	return (
-		<div
-			style={{
-				maxHeight: '100vh',
-				overflowY: 'auto',
-				padding: '1rem',
-			}}
-		>
+		<div className="app-container">
 			{/* --- Controls --- */}
-			<div id="controls">
-				<input
-					type="radio"
-					id="unwise"
-					name="viewer_select"
-					value={UNWISE}
-					checked={selected === UNWISE}
-					onChange={() => setSelected(UNWISE)}
-				/>
-				<label htmlFor="unwise">Unwise Neo6</label>
+			<div className="controls-panel">
+				<div className="radio-group">
+					<div className="radio-item">
+						<input
+							type="radio"
+							id="unwise"
+							name="viewer_select"
+							value={UNWISE}
+							checked={selected === UNWISE}
+							onChange={() => setSelected(UNWISE)}
+						/>
+						<label htmlFor="unwise">Unwise Neo6</label>
+					</div>
 
-				<input
-					type="radio"
-					id="andromeda"
-					name="viewer_select"
-					value={ANDROMEDA}
-					checked={selected === ANDROMEDA}
-					onChange={() => setSelected(ANDROMEDA)}
-				/>
-				<label htmlFor="andromeda">Andromeda Galaxy</label>
+					<div className="radio-item">
+						<input
+							type="radio"
+							id="andromeda"
+							name="viewer_select"
+							value={ANDROMEDA}
+							checked={selected === ANDROMEDA}
+							onChange={() => setSelected(ANDROMEDA)}
+						/>
+						<label htmlFor="andromeda">Andromeda Galaxy</label>
+					</div>
 
-				<input
-					type="radio"
-					id="mars"
-					name="viewer_select"
-					value={MARS}
-					checked={selected === MARS}
-					onChange={() => setSelected(MARS)}
-				/>
-				<label htmlFor="mars">Mars</label>
-			</div>
+					<div className="radio-item">
+						<input
+							type="radio"
+							id="mars"
+							name="viewer_select"
+							value={MARS}
+							checked={selected === MARS}
+							onChange={() => setSelected(MARS)}
+						/>
+						<label htmlFor="mars">Mars</label>
+					</div>
+				</div>
 
-			{/* --- Search UI --- */}
-			<div id="search-container" style={{ margin: '10px 0' }}>
-				<input
-					type="text"
-					placeholder="Ask me to find something on the map..."
-					value={searchQuery}
-					onChange={(e) => setSearchQuery(e.target.value)}
-					style={{ width: '50%', marginRight: '10px' }}
-				/>
-				<button onClick={handleSearch}>Search</button>
-				<button onClick={handleAnalyze}>Analyze View</button>
-				{/* <button onClick={handleEnhancedSearch}>Enhanced Search</button> */}
-				<div id="search-status" style={{ marginTop: '8px', color: '#0af' }}>
-					{statusMessage}
+				{/* --- Search UI --- */}
+				<div className="search-container">
+					<div className="search-input-group">
+						<input
+							type="text"
+							className="search-input"
+							placeholder="Ask me to find something on the map..."
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+							onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+						/>
+						<div className="button-group">
+							<button className="btn btn-primary" onClick={handleSearch}>Search</button>
+							<button className="btn btn-secondary" onClick={handleAnalyze}>Analyze View</button>
+						</div>
+					</div>
+					<div className="search-status">
+						{statusMessage}
+					</div>
 				</div>
 			</div>
 
 			{/* --- Results --- */}
 			{resultsVisible && (
-				<div
-					id="results-panel"
-					style={{
-						background: '#111',
-						color: '#fff',
-						padding: '10px',
-						borderRadius: '6px',
-						marginBottom: '10px',
-					}}
-				>
-					<div id="results-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
+				<div className="results-panel">
+					<div className="results-header">
 						<h3>Search Results</h3>
-						<button onClick={() => setResultsVisible(false)}>×</button>
+						<button className="btn btn-close" onClick={() => setResultsVisible(false)}>×</button>
 					</div>
-					<div id="results-content" dangerouslySetInnerHTML={{ __html: resultHtml }} />
+					<div className="results-content" dangerouslySetInnerHTML={{ __html: resultHtml }} />
 				</div>
 			)}
 
 			{/* --- Viewer --- */}
-			<div
-				id="openseadragon-viewer"
-				ref={osdContainerRef}
-				style={{
-					width: '100%',
-					height: '80vh',
-					backgroundColor: '#000',
-				}}
-			></div>
+			<div className="viewer-container">
+				<div
+					id="openseadragon-viewer"
+					ref={osdContainerRef}
+					className="map-canvas"
+				></div>
 
-			{/* --- Mars map overlay --- */}
-			{selected === MARS && <MarsAnnotationMap />}
+				{/* --- Mars map overlay --- */}
+				{selected === MARS && <MarsAnnotationMap />}
 
-			<div
-				id="mars-frame-container"
-				ref={marsContainerRef}
-				style={{ width: '100%', height: '80vh', display: 'none' }}
-			></div>
+				<div
+					id="mars-frame-container"
+					ref={marsContainerRef}
+					className="mars-container"
+				></div>
+			</div>
 		</div>
 	);
 }
