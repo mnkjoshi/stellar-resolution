@@ -69,22 +69,58 @@ export default function App() {
         const annotate = Annotorious(viewer, {});
         setAnno(annotate);
 
-        annotate.on("createAnnotation", (annotation) => {
-            console.log("createAnnotation", annotation);
-            setAnnotations((prev) => [...prev, annotation]);
+        const fetchAnnotations = async () => {
+            const res = await fetch(`${BACKEND_URL}/getLabels`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const annotations = await res.json();
+            annotations.forEach(a => annotate.addAnnotation(a));
+        }
+        fetchAnnotations();
+
+		annotate.on('createAnnotation', async (annotation) => {
+            const res = await fetch(`${BACKEND_URL}/addLabel`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(annotation),
+			});
+			const result = await res.json();
+            console.log('Label creation result:', result);
+		});
+
+		annotate.on("updateAnnotation", async (updated, previous) => {
+            try {
+                const id = (updated.id || "").toString();
+                const res = await fetch(`${BACKEND_URL}/updateLabel/${encodeURIComponent(id)}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(updated), // send full Web Annotation object
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(`HTTP ${res.status}: ${err.error || "Update failed"}`);
+                }
+
+                const result = await res.json();
+                console.log("Updated annotation:", result);
+            } catch (e) {
+                console.error("Failed to update annotation:", e);
+            }
         });
 
-        annotate.on("updateAnnotation", (annotation) => {
-            setAnnotations((prev) =>
-                prev.map((a) => (a.id === annotation.id ? annotation : a))
-            );
-        });
+		annotate.on('deleteAnnotation', async (annotation) => {
+            try {
+                const id = (annotation.id || "").toString();
+                const res = await fetch(`${BACKEND_URL}/deleteLabel/${encodeURIComponent(id)}`, {
+                    method: "DELETE",
+                });
+                const result = await res.json();
+                console.log("Deleted annotation:", result);
+            } catch (e) {
+                console.error("Failed to delete annotation:", e);
+            }
 
-        annotate.on("deleteAnnotation", (annotation) => {
-            setAnnotations((prev) =>
-                prev.filter((a) => a.id !== annotation.id)
-            );
-        });
+		});
 
         // Setup stars
         starApiRef.current = setupStarOverlays(viewer, BACKEND_URL);
