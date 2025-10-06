@@ -6,6 +6,8 @@ const { initializeApp, applicationDefault, cert } = require('firebase-admin/app'
 const { getFirestore } = require('firebase-admin/firestore');
 const serviceAccount = require("./serviceAccountKey.json");
 const axios = require("axios");
+const utils = require("./utils/utils");
+// import { getFirestore } from 'firebase/firestore';
 
 //https://dashboard.render.com/web/srv-crcllkqj1k6c73coiv10/events
 //https://console.firebase.google.com/u/0/project/the-golden-hind/database/the-golden-hind-default-rtdb/data/~2F
@@ -186,8 +188,8 @@ const mapKnowledge = {
         bounds: { x: { min: 0, max: 69536 }, y: { min: 0, max: 22230 } },
         notable_objects: {
             "galaxy center": {
-                x: 34768,
-                y: 11115,
+                x: 1500,
+                y: 20000,
                 description: "Central black hole and bulge of Andromeda",
             },
             "spiral arms": {
@@ -265,14 +267,21 @@ function convertCoordinates(mapType, coordinates) {
     const mapInfo = mapKnowledge[mapType];
     switch (mapType) {
         case "unwise": {
-            const x = coordinates.ra / 360.0;
-            const y = 1 - (coordinates.dec + 90) / 180.0;
+            const x = utils.long2x(
+                utils.ra2long(coordinates.ra),
+                256 * Math.pow(2, 11)
+            );
+            const y = utils.lat2y(
+                utils.dec2lat(coordinates.dec),
+                256 * Math.pow(2, 11),
+                256 * Math.pow(2, 11)
+            );
             return { x, y };
         }
         case "andromeda": {
             return {
-                x: coordinates.x / mapInfo.bounds.x.max,
-                y: coordinates.y / mapInfo.bounds.y.max,
+                x: coordinates.x,
+                y: coordinates.y,
             };
         }
         case "mars": {
@@ -441,14 +450,19 @@ Current view (normalized coords): ${
             currentView ? JSON.stringify(currentView) : "Unknown"
         }
 
-Analyze the image and return STRICT JSON (no markdown, no code fences):
+Analyze the image and return STRICT JSON (no markdown, no code fences). In addition to a concise natural-language description, attempt to classify what the image most likely contains (e.g. planet, moon, star, galaxy, nebula, star cluster, spacecraft, surface terrain, instrument artifact, unknown). For each classification provide a confidence between 0.0 and 1.0. If uncertain, include "unknown" with low confidence.
+
+Return this JSON shape exactly:
 {
   "analysis": "concise natural-language description of what you see",
   "features": ["list", "of", "features"],
   "notable_objects": ["objects if any"],
   "scale_estimate": "words about scale/zoom/extent",
   "query_response": "answer the user query if provided",
-  "confidence": 0.0-1.0
+  "confidence": 0.0-1.0,
+  "classification": [
+     { "label": "planet|star|galaxy|nebula|moon|cluster|terrain|artifact|unknown", "subtype": "optional more specific label (e.g. Mars, Andromeda)", "confidence": 0.0-1.0, "notes": "optional brief justification" }
+  ]
 }`;
 
         const completion = await openai.chat.completions.create({
@@ -485,9 +499,18 @@ Analyze the image and return STRICT JSON (no markdown, no code fences):
                 scale_estimate: "Unknown",
                 query_response: stripped,
                 confidence: 0.5,
+                classification: [
+                    {
+                        label: "unknown",
+                        subtype: "",
+                        confidence: 0.5,
+                        notes: "Fallback: raw textual analysis used because JSON parsing failed",
+                    },
+                ],
             };
         }
-        // normalize confidence
+
+        // normalize top-level confidence
         if (
             typeof analysisResult.confidence === "number" &&
             analysisResult.confidence > 1 &&
@@ -495,6 +518,36 @@ Analyze the image and return STRICT JSON (no markdown, no code fences):
         ) {
             analysisResult.confidence = analysisResult.confidence / 100;
         }
+
+        // ensure classification array exists and normalize confidences inside it
+        if (!Array.isArray(analysisResult.classification)) {
+            analysisResult.classification = analysisResult.classification
+                ? [analysisResult.classification]
+                : [];
+        }
+        analysisResult.classification = analysisResult.classification.map(
+            (c) => {
+                if (!c || typeof c !== "object") {
+                    return {
+                        label: String(c || "unknown"),
+                        subtype: "",
+                        confidence: 0.0,
+                        notes: "",
+                    };
+                }
+                let conf = Number(c.confidence ?? c.conf ?? 0);
+                if (isNaN(conf)) conf = 0;
+                if (conf > 1 && conf <= 100) conf = conf / 100;
+                if (conf < 0) conf = 0;
+                if (conf > 1) conf = 1;
+                return {
+                    label: String(c.label ?? "unknown"),
+                    subtype: String(c.subtype ?? c.detail ?? ""),
+                    confidence: conf,
+                    notes: String(c.notes ?? c.explanation ?? ""),
+                };
+            }
+        );
 
         res.json({
             success: true,
