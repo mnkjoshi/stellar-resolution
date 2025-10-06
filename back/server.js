@@ -2,12 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const OpenAI = require("openai");
-const { initializeApp, applicationDefault, cert } = require('firebase-admin/app');
+const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const serviceAccount = require("./serviceAccountKey.json");
 const axios = require("axios");
 const utils = require("./utils/utils");
-// import { getFirestore } from 'firebase/firestore';
 
 //https://dashboard.render.com/web/srv-crcllkqj1k6c73coiv10/events
 //https://console.firebase.google.com/u/0/project/the-golden-hind/database/the-golden-hind-default-rtdb/data/~2F
@@ -44,9 +43,10 @@ app.get("/api/stars", async (req, res) => {
 const firebaseApp = initializeApp({ credential: cert(serviceAccount) });
 const db = getFirestore(firebaseApp);
 
-app.get("/getLabels", async (req, res) => {
+app.get("/:map/getLabels", async (req, res) => {
     try {
-        const snapshot = await db.collection('labels').get();
+        const mapKey = String(req.params.map || "").toLowerCase();
+        const snapshot = await db.collection(`${mapKey}-labels`).get();
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         res.status(200).json(data);
     } catch (error) {
@@ -55,10 +55,11 @@ app.get("/getLabels", async (req, res) => {
     }
 });
 
-app.post("/addLabel", async (req, res) => {
+app.post("/:map/addLabel", async (req, res) => {
     try {
+        const mapKey = String(req.params.map || "").toLowerCase();
         const annotationJSON = req.body;
-        const docRef = db.collection('labels').doc(annotationJSON.id);
+        const docRef = db.collection(`${mapKey}-labels`).doc(annotationJSON.id);
         await docRef.set(annotationJSON);
         res.status(201).json({ id: docRef.id });
     } catch (error) {
@@ -67,16 +68,15 @@ app.post("/addLabel", async (req, res) => {
     }
 });
 
-app.post("/updateLabel/:id", async (req, res) => {
+app.post("/:map/updateLabel/:id", async (req, res) => {
     try {
+        const mapKey = String(req.params.map || "").toLowerCase();
         const annotationJSON = req.body;
         const incomingId = (req.params.id ?? annotationJSON?.id ?? "").toString().trim();
         if (!incomingId) return res.status(400).json({ error: "Missing annotation id" });
         if (incomingId.includes("/")) return res.status(400).json({ error: "Annotation id cannot contain '/'" });
 
-        // const docRef = db.collection("labels").doc(incomingId);
-        // await docRef.set({ ...annotationJSON });
-        await db.collection("labels").doc(incomingId).set(annotationJSON);
+        await db.collection(`${mapKey}-labels`).doc(incomingId).set(annotationJSON);
         res.status(200).json({ id: incomingId, ok: true }); 
     }
     catch (error) {
@@ -85,14 +85,15 @@ app.post("/updateLabel/:id", async (req, res) => {
     }
 });
 
-app.delete("/deleteLabel/:id", async (req, res) => {
+app.delete("/:map/deleteLabel/:id", async (req, res) => {
     try {
+        const mapKey = String(req.params.map || "").toLowerCase();
         const annotationJSON = req.body;
         const incomingId = (req.params.id ?? annotationJSON?.id ?? "").toString().trim();
 
         if (!incomingId) return res.status(400).json({ error: "Missing annotation id" });
 
-        const docRef = db.collection("labels").doc(incomingId);
+        const docRef = db.collection(`${mapKey}-labels`).doc(incomingId);
         const snapshot = await docRef.get();
         if (!snapshot.exists) return res.status(404).json({ error: "Annotation not found" });
         await docRef.delete();
