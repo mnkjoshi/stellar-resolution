@@ -2,9 +2,10 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const OpenAI = require("openai");
-const admin = require("firebase-admin");
+const { initializeApp, applicationDefault, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
+const serviceAccount = require("./serviceAccountKey.json");
 const axios = require("axios");
-// import { getFirestore } from 'firebase/firestore';
 
 //https://dashboard.render.com/web/srv-crcllkqj1k6c73coiv10/events
 //https://console.firebase.google.com/u/0/project/the-golden-hind/database/the-golden-hind-default-rtdb/data/~2F
@@ -36,17 +37,70 @@ app.get("/api/stars", async (req, res) => {
     }
 });
 
-const firebaseConfig = {
-    apiKey: process.env.API_KEY,
-    authDomain: process.env.AUTH_DOMAIN,
-    projectId: process.env.PROJECT_ID,
-    storageBucket: process.env.STORAGE_BUCKET,
-    messagingSenderId: process.env.MESSAGING_SENDER_ID,
-    appId: process.env.APP_ID,
-};
+/* ------------------------- Firestore Labeling ------------------------- */
 
-const firebaseApp = admin.initializeApp(firebaseConfig);
-// const db = getFirestore(firebaseApp);
+const firebaseApp = initializeApp({ credential: cert(serviceAccount) });
+const db = getFirestore(firebaseApp);
+
+app.get("/getLabels", async (req, res) => {
+    try {
+        const snapshot = await db.collection('labels').get();
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        res.status(200).json(data);
+    } catch (error) {
+        console.error("Error fetching labels:", error);
+        res.status(500).json({ error: "Failed to fetch labels" });
+    }
+});
+
+app.post("/addLabel", async (req, res) => {
+    try {
+        const annotationJSON = req.body;
+        const docRef = db.collection('labels').doc(annotationJSON.id);
+        await docRef.set(annotationJSON);
+        res.status(201).json({ id: docRef.id });
+    } catch (error) {
+        console.error("Error adding label:", error);
+        res.status(500).json({ error: "Failed to add label" });
+    }
+});
+
+app.post("/updateLabel/:id", async (req, res) => {
+    try {
+        const annotationJSON = req.body;
+        const incomingId = (req.params.id ?? annotationJSON?.id ?? "").toString().trim();
+        if (!incomingId) return res.status(400).json({ error: "Missing annotation id" });
+        if (incomingId.includes("/")) return res.status(400).json({ error: "Annotation id cannot contain '/'" });
+
+        // const docRef = db.collection("labels").doc(incomingId);
+        // await docRef.set({ ...annotationJSON });
+        await db.collection("labels").doc(incomingId).set(annotationJSON);
+        res.status(200).json({ id: incomingId, ok: true }); 
+    }
+    catch (error) {
+        console.error("Error updating label:", error);
+        res.status(500).json({ error: "Failed to update label", detail: String(error) });
+    }
+});
+
+app.delete("/deleteLabel/:id", async (req, res) => {
+    try {
+        const annotationJSON = req.body;
+        const incomingId = (req.params.id ?? annotationJSON?.id ?? "").toString().trim();
+
+        if (!incomingId) return res.status(400).json({ error: "Missing annotation id" });
+
+        const docRef = db.collection("labels").doc(incomingId);
+        const snapshot = await docRef.get();
+        if (!snapshot.exists) return res.status(404).json({ error: "Annotation not found" });
+        await docRef.delete();
+        res.status(200).json({ ok: true, id: incomingId, message: "Annotation deleted" });
+    } catch (error) {
+        console.error("Error deleting label:", error);
+        res.status(500).json({ error: "Failed to delete label", detail: String(error) });
+    }
+});
+
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -712,170 +766,3 @@ app.listen(PORT, () => {
     console.log(`Stars: http://localhost:${PORT}/stars/bright`);
 });
 
-// const mailAPIkey = process.env.mailAPIkey
-// sgMail.setApiKey('SG.' + mailAPIkey)
-
-// app.get('/', (request, response) => {
-//     response.status(200);
-//     response.send("Yarrr! Ahoy there, matey!");
-// });
-
-// app.post('/login', async (request, response) => {
-//     const { username, password } = request.body
-//     try {
-//         const authenticated = await AttemptAuth(username, password);
-//         if (authenticated) {
-//             const token = await FetchUserToken(request.body.username);
-//             if (token.substr(0, 11) == "validation=") {
-//                 await OfferVerify(username, token)
-//                 response.status(202);
-//                 response.send("UNV") // User needs to verify
-//             } else if (token) {
-//                 response.status(200);
-//                 response.send({ username,  token });
-//             } else {
-//                 response.status(202);
-//                 response.send("UNV");
-//             }
-//         } else {
-//             response.status(202);
-//             response.send("ILD"); //Incorrect login details
-//         }
-//     } catch(error) {
-//         response.status(202);
-//         response.send(error.message); //Unknown error
-//     }
-// });
-
-//process.env.PORT
-// const listener = app.listen(3000, (error) => {
-//     if (error == null) {
-//         console.log("Server now running on port " + listener.address().port)
-//         console.log("http://localhost:" + listener.address().port)
-//     } else {
-//         console.log(error)
-//     }
-// });
-
-// async function Authenticate(user, token) {
-//     const db = admin.database();
-
-//     const snapshot = await db.ref(`users/${user}/token`).once('value');
-//     if (snapshot.exists()) {
-//         if (token == snapshot.val()) {
-//             return true
-//         }
-//     }
-//     return false
-// }
-
-// async function AttemptAuth(username, password) {
-//     const db = admin.database();
-
-//     try {
-
-//         const snapshot = await db.ref(`users/${username}/password`).once('value');
-//         if (snapshot.exists()) {
-//             const storedPassword = snapshot.val();
-//             return storedPassword === password;
-//         } else {
-//             return false;
-//         }
-//     } catch (error) {
-//         console.error("Error while authenticating the user: ", error);
-//         return false;
-//     }
-// }
-// async function FetchUserToken(username) {
-//     const db = admin.database();
-//     try {
-//         const DataSnapshot = await db.ref(`users/${username}/token`).once('value');
-//         if (DataSnapshot.exists()) {
-//             return DataSnapshot.val();
-//         } else {
-//             return null
-//         }
-//     } catch (error) {
-//         console.log("Error found while fetching user token: " + error)
-//     }
-//     return token
-// }
-
-// async function Register(username, password, email) {
-//     const db = admin.database();
-//     const newToken = "validation=" + GenerateToken()
-//     try {
-
-//         db.ref(`users/${username}`).set({
-//             password: password,
-//             email: email,
-//             favourites: "[]",
-//             continues: "[]",
-//             token: newToken,
-//         })
-
-//         email = email.replace(".", "@@@")
-
-//         db.ref(`emails/${email}`).set({
-//             user: username,
-//         })
-
-//         db.ref(`vlist/${newToken}`).set({
-//             user: username,
-//         })
-//     } catch (error) {
-//         return error
-//     }
-
-//     await OfferVerify(username, newToken, email)
-//     return 0
-// }
-
-// async function CheckUser(username, email) {
-//     const db = admin.database();
-
-//     const UserSnaphot = await db.ref(`users/${username}`).once('value');
-//     if (UserSnaphot.exists()) {
-//         return 1
-//     }
-
-//     email = email.replace(".", "@@@")
-//     const EmailSnapshot = await db.ref(`emails/${email}`).once('value');
-//     if (EmailSnapshot.exists()) {
-//         return 2
-//     }
-
-//     return 0
-// }
-
-// async function OfferVerify(username, token, email) {
-//     if (email == null) {
-//         const db = admin.database()
-//         const EmailSnapshot = await db.ref(`users/${username}/email`).once('value');
-//         email = EmailSnapshot.val();
-//     }
-
-//     email = email.replace("@@@", ".")
-
-//     let link = "https://the-golden-hind.web.app/auth/" + token
-//     const msg = {
-//         to: email, // Change to your recipient
-//         from: 'disvelop@proton.me', // Change to your verified sender
-//         subject: 'TGH Verification',
-//         html: `<html> <head> <title>EMAIL</title> </head> <body> <div> <h1 style="text-align:center;">Welcome to TGH</h1> <hr> <p style= "text-align:center;">Click the link below to verify your account.</p> <a clicktracking=off href="${link}" style="text-align:center; align-self:center;">${link}</a> </div> </body> </html>`,
-//     }
-
-//     sgMail
-//     .send(msg)
-//     .then(() => {
-//       console.log('Email verification sent!')
-//     })
-//     .catch((error) => {
-//         console.log("VerE")
-//       console.error(error)
-//     })
-// }
-
-// function GenerateToken() {
-//     return Math.random().toString(36).substr(2) + Math.random().toString(36).substr(2);
-// }
