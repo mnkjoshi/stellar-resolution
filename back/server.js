@@ -395,14 +395,19 @@ Current view (normalized coords): ${
             currentView ? JSON.stringify(currentView) : "Unknown"
         }
 
-Analyze the image and return STRICT JSON (no markdown, no code fences):
+Analyze the image and return STRICT JSON (no markdown, no code fences). In addition to a concise natural-language description, attempt to classify what the image most likely contains (e.g. planet, moon, star, galaxy, nebula, star cluster, spacecraft, surface terrain, instrument artifact, unknown). For each classification provide a confidence between 0.0 and 1.0. If uncertain, include "unknown" with low confidence.
+
+Return this JSON shape exactly:
 {
   "analysis": "concise natural-language description of what you see",
   "features": ["list", "of", "features"],
   "notable_objects": ["objects if any"],
   "scale_estimate": "words about scale/zoom/extent",
   "query_response": "answer the user query if provided",
-  "confidence": 0.0-1.0
+  "confidence": 0.0-1.0,
+  "classification": [
+     { "label": "planet|star|galaxy|nebula|moon|cluster|terrain|artifact|unknown", "subtype": "optional more specific label (e.g. Mars, Andromeda)", "confidence": 0.0-1.0, "notes": "optional brief justification" }
+  ]
 }`;
 
         const completion = await openai.chat.completions.create({
@@ -439,9 +444,18 @@ Analyze the image and return STRICT JSON (no markdown, no code fences):
                 scale_estimate: "Unknown",
                 query_response: stripped,
                 confidence: 0.5,
+                classification: [
+                    {
+                        label: "unknown",
+                        subtype: "",
+                        confidence: 0.5,
+                        notes: "Fallback: raw textual analysis used because JSON parsing failed",
+                    },
+                ],
             };
         }
-        // normalize confidence
+
+        // normalize top-level confidence
         if (
             typeof analysisResult.confidence === "number" &&
             analysisResult.confidence > 1 &&
@@ -449,6 +463,36 @@ Analyze the image and return STRICT JSON (no markdown, no code fences):
         ) {
             analysisResult.confidence = analysisResult.confidence / 100;
         }
+
+        // ensure classification array exists and normalize confidences inside it
+        if (!Array.isArray(analysisResult.classification)) {
+            analysisResult.classification = analysisResult.classification
+                ? [analysisResult.classification]
+                : [];
+        }
+        analysisResult.classification = analysisResult.classification.map(
+            (c) => {
+                if (!c || typeof c !== "object") {
+                    return {
+                        label: String(c || "unknown"),
+                        subtype: "",
+                        confidence: 0.0,
+                        notes: "",
+                    };
+                }
+                let conf = Number(c.confidence ?? c.conf ?? 0);
+                if (isNaN(conf)) conf = 0;
+                if (conf > 1 && conf <= 100) conf = conf / 100;
+                if (conf < 0) conf = 0;
+                if (conf > 1) conf = 1;
+                return {
+                    label: String(c.label ?? "unknown"),
+                    subtype: String(c.subtype ?? c.detail ?? ""),
+                    confidence: conf,
+                    notes: String(c.notes ?? c.explanation ?? ""),
+                };
+            }
+        );
 
         res.json({
             success: true,
