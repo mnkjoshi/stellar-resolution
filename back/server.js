@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const OpenAI = require("openai");
 const admin = require("firebase-admin");
 const axios = require("axios");
+const utils = require("./utils/utils");
 // import { getFirestore } from 'firebase/firestore';
 
 //https://dashboard.render.com/web/srv-crcllkqj1k6c73coiv10/events
@@ -132,8 +133,8 @@ const mapKnowledge = {
         bounds: { x: { min: 0, max: 69536 }, y: { min: 0, max: 22230 } },
         notable_objects: {
             "galaxy center": {
-                x: 34768,
-                y: 11115,
+                x: 1500,
+                y: 20000,
                 description: "Central black hole and bulge of Andromeda",
             },
             "spiral arms": {
@@ -211,14 +212,21 @@ function convertCoordinates(mapType, coordinates) {
     const mapInfo = mapKnowledge[mapType];
     switch (mapType) {
         case "unwise": {
-            const x = coordinates.ra / 360.0;
-            const y = 1 - (coordinates.dec + 90) / 180.0;
+            const x = utils.long2x(
+                utils.ra2long(coordinates.ra),
+                256 * Math.pow(2, 11)
+            );
+            const y = utils.lat2y(
+                utils.dec2lat(coordinates.dec),
+                256 * Math.pow(2, 11),
+                256 * Math.pow(2, 11)
+            );
             return { x, y };
         }
         case "andromeda": {
             return {
-                x: coordinates.x / mapInfo.bounds.x.max,
-                y: coordinates.y / mapInfo.bounds.y.max,
+                x: coordinates.x,
+                y: coordinates.y,
             };
         }
         case "mars": {
