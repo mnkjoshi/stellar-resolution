@@ -40,13 +40,9 @@ export function setupStarOverlays(viewer) {
             const height = width;
 
             const rahi = long2ra(x2long(bounds.x * width, width));
-            const ralo = long2ra(
-                x2long((bounds.x + bounds.width) * width, width)
-            );
-            const declo = dec2lat(
-                y2lat((bounds.y + bounds.height) * height, width, height)
-            );
-            const dechi = dec2lat(y2lat(bounds.y * height, width, height));
+            const ralo = long2ra(x2long((bounds.x + bounds.width) * width, width));
+            const declo = lat2dec(y2lat((bounds.y + bounds.height) * height, width, height));
+            const dechi = lat2dec(y2lat(bounds.y * height, width, height));
 
             if (zoom < DOT_VISIBILITY_THRESHOLD) {
                 clearStarOverlays();
@@ -65,10 +61,8 @@ export function setupStarOverlays(viewer) {
                     const x = long2x(ra2long(data.rd[i][0]), width);
                     const y = lat2y(dec2lat(data.rd[i][1]), width, height);
                     const name = data.name[i];
-                    const point = new OpenSeadragon.Point(
-                        x / width,
-                        y / height
-                    );
+                    const point = new OpenSeadragon.Point(x / width, y / height);
+
                     const overlayDiv = document.createElement("div");
                     overlayDiv.className = showText ? "star-label" : "star-dot";
                     if (showText) overlayDiv.textContent = name;
@@ -94,7 +88,7 @@ export function setupStarOverlays(viewer) {
     // Hook into viewer
     viewer.addHandler("open", updateBrightStars);
     viewer.addHandler("viewport-change", () =>
-        debounce(updateBrightStars, 500)
+        debounce(updateBrightStars, 200)
     );
 
     return { updateBrightStars, clearStarOverlays };

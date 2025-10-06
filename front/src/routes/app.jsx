@@ -12,7 +12,6 @@ const BACKEND_URL = "http://localhost:3001";
 
 export default function App() {
     const osdContainerRef = useRef(null);
-    const marsContainerRef = useRef(null);
     const viewerInstanceRef = useRef(null);
     const starApiRef = useRef({
         updateBrightStars: () => {},
@@ -20,8 +19,8 @@ export default function App() {
     });
 
     const [selected, setSelected] = useState(UNWISE);
+    const [annotorious, setAnnotorious] = useState(null);
     const [annotations, setAnnotations] = useState([]);
-    const [anno, setAnno] = useState(null);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [statusMessage, setStatusMessage] = useState("");
@@ -62,12 +61,13 @@ export default function App() {
             showFullPageControl: true,
             animationTime: 1.2,
             crossOriginPolicy: "Anonymous",
+            zoomPerClick: 1,
         });
 
         viewerInstanceRef.current = viewer;
 
         const annotate = Annotorious(viewer, {});
-        setAnno(annotate);
+        setAnnotorious(annotate);
 
         const fetchAnnotations = async () => {
             const res = await fetch(`${BACKEND_URL}/getLabels`);
@@ -83,44 +83,44 @@ export default function App() {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(annotation),
 			});
-			const result = await res.json();
-            console.log('Label creation result:', result);
+			// const result = await res.json();
+            // console.log('Label creation result:', result);
 		});
 
-		annotate.on("updateAnnotation", async (updated, previous) => {
-            try {
-                const id = (updated.id || "").toString();
-                const res = await fetch(`${BACKEND_URL}/updateLabel/${encodeURIComponent(id)}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(updated), // send full Web Annotation object
-                });
+		// annotate.on("updateAnnotation", async (updated, previous) => {
+        //     try {
+        //         const id = (updated.id || "").toString();
+        //         const res = await fetch(`${BACKEND_URL}/updateLabel/${encodeURIComponent(id)}`, {
+        //             method: "POST",
+        //             headers: { "Content-Type": "application/json" },
+        //             body: JSON.stringify(updated), // send full Web Annotation object
+        //         });
 
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({}));
-                    throw new Error(`HTTP ${res.status}: ${err.error || "Update failed"}`);
-                }
+        //         if (!res.ok) {
+        //             const err = await res.json().catch(() => ({}));
+        //             throw new Error(`HTTP ${res.status}: ${err.error || "Update failed"}`);
+        //         }
 
-                const result = await res.json();
-                console.log("Updated annotation:", result);
-            } catch (e) {
-                console.error("Failed to update annotation:", e);
-            }
-        });
+        //         const result = await res.json();
+        //         console.log("Updated annotation:", result);
+        //     } catch (e) {
+        //         console.error("Failed to update annotation:", e);
+        //     }
+        // });
 
-		annotate.on('deleteAnnotation', async (annotation) => {
-            try {
-                const id = (annotation.id || "").toString();
-                const res = await fetch(`${BACKEND_URL}/deleteLabel/${encodeURIComponent(id)}`, {
-                    method: "DELETE",
-                });
-                const result = await res.json();
-                console.log("Deleted annotation:", result);
-            } catch (e) {
-                console.error("Failed to delete annotation:", e);
-            }
+		// annotate.on('deleteAnnotation', async (annotation) => {
+        //     try {
+        //         const id = (annotation.id || "").toString();
+        //         const res = await fetch(`${BACKEND_URL}/deleteLabel/${encodeURIComponent(id)}`, {
+        //             method: "DELETE",
+        //         });
+        //         const result = await res.json();
+        //         console.log("Deleted annotation:", result);
+        //     } catch (e) {
+        //         console.error("Failed to delete annotation:", e);
+        //     }
 
-		});
+		// });
 
         // Setup stars
         starApiRef.current = setupStarOverlays(viewer, BACKEND_URL);
@@ -137,11 +137,8 @@ export default function App() {
     useEffect(() => {
         const viewer = viewerInstanceRef.current;
         const osdEl = osdContainerRef.current;
-        const marsEl = marsContainerRef.current;
 
         function showOSD() {
-            marsEl.style.display = "none";
-            marsEl.innerHTML = "";
             osdEl.style.display = "block";
             viewer.viewport && viewer.viewport.goHome(true);
             viewer.forceRedraw();
@@ -150,7 +147,6 @@ export default function App() {
         function showMarsIframe() {
             osdEl.style.display = "none";
             starApiRef.current.clearStarOverlays();
-            marsEl.style.display = "block";
         }
 
         if (selected === UNWISE) {
@@ -389,49 +385,24 @@ export default function App() {
                     .results-column { width: 100%; max-height: 30vh; min-width: 0; }
                 }
             `}</style>
-            {/* --- Controls --- */}
             <div className="controls-panel">
-                <div className="radio-group">
-                    <div className="radio-item">
-                        <input
-                            type="radio"
-                            id="unwise"
-                            name="viewer_select"
-                            value={UNWISE}
-                            checked={selected === UNWISE}
-                            onChange={() => setSelected(UNWISE)}
-                        />
-                        <label htmlFor="unwise">Unwise Neo6</label>
-                    </div>
-
-                    <div className="radio-item">
-                        <input
-                            type="radio"
-                            id="andromeda"
-                            name="viewer_select"
-                            value={ANDROMEDA}
-                            checked={selected === ANDROMEDA}
-                            onChange={() => setSelected(ANDROMEDA)}
-                        />
-                        <label htmlFor="andromeda">Andromeda Galaxy</label>
-                    </div>
-
-                    <div className="radio-item">
-                        <input
-                            type="radio"
-                            id="mars"
-                            name="viewer_select"
-                            value={MARS}
-                            checked={selected === MARS}
-                            onChange={() => setSelected(MARS)}
-                        />
-                        <label htmlFor="mars">Mars</label>
-                    </div>
-                </div>
-
-                {/* --- Search UI --- */}
                 <div className="search-container">
                     <div className="search-input-group">
+                        <div className="dropdown-group">
+                            <label htmlFor="viewer-select" className="dropdown-label">
+                                Select Map:
+                            </label>
+                            <select
+                                id="viewer-select"
+                                className="viewer-dropdown"
+                                value={selected}
+                                onChange={(e) => setSelected(e.target.value)}
+                            >
+                                <option value={UNWISE}>unWISE NEO6</option>
+                                <option value={ANDROMEDA}>Andromeda Galaxy</option>
+                                <option value={MARS}>Mars</option>
+                            </select>
+                        </div>
                         <input
                             type="text"
                             className="search-input"
@@ -479,7 +450,7 @@ export default function App() {
                             className="btn btn-close"
                             onClick={() => setResultsVisible(false)}
                         >
-                            ×
+                            x
                         </button>
                     </div>
                     <div
@@ -506,12 +477,15 @@ export default function App() {
 
                 {/* --- Mars map overlay --- */}
                 {selected === MARS && <MarsAnnotationMap />}
-
-                <div
-                    id="mars-frame-container"
-                    ref={marsContainerRef}
-                    className="mars-container"
-                ></div>
+                <div className="viewer-source-text">
+                    {selected === ANDROMEDA ? (
+                        <span>ESA/Hubble</span>
+                    ) : selected === UNWISE ? (
+                        <span>
+                            unWISE / NASA/JPL-Caltech / D. Lang (Perimeter Institute)
+                        </span>
+                    ) : null}
+                </div>
             </div>
         </div>
     );
