@@ -1,0 +1,1 @@
+import{cH as _,bd as i,cI as e}from"./index-BCRx-hwS.js";class a extends _{constructor(){super(...arguments),this._pp0=i(0,0,1),this._pp1=i(0,0,0)}intersect(t,r,p,s,h,n){return e(t,p,s,h,void 0,n)}intersectDraped(t,r,p,s){return this._pp0[0]=this._pp1[0]=p[0],this._pp0[1]=this._pp1[1]=p[1],e(t,r,this._pp0,this._pp1,void 0,s)}}export{a as r};

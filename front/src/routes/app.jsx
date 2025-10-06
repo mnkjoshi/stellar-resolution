@@ -8,7 +8,7 @@ import MarsAnnotationMap from "./mars.jsx";
 const UNWISE = "unwise";
 const ANDROMEDA = "andromeda";
 const MARS = "mars";
-const BACKEND_URL = "http://localhost:3001";
+const BACKEND_URL = "https://stellar-resolution.onrender.com";
 
 export default function App() {
     const osdContainerRef = useRef(null);
