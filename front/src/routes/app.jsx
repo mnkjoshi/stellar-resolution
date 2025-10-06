@@ -12,7 +12,6 @@ const BACKEND_URL = 'http://localhost:3001';
 
 export default function App() {
 	const osdContainerRef = useRef(null);
-	const marsContainerRef = useRef(null);
 	const viewerInstanceRef = useRef(null);
 	const starApiRef = useRef({
 		updateBrightStars: () => {},
@@ -20,8 +19,8 @@ export default function App() {
 	});
 
 	const [selected, setSelected] = useState(UNWISE);
-	const [annotations, setAnnotations] = useState([]);
-	const [anno, setAnno] = useState(null);
+	const [annotorious, setAnnotorious] = useState(null);
+    const [annotations, setAnnotations] = useState([]);
 
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusMessage, setStatusMessage] = useState('');
@@ -59,24 +58,16 @@ export default function App() {
 			showFullPageControl: true,
 			animationTime: 1.2,
 			crossOriginPolicy: 'Anonymous',
+            zoomPerClick: 1,
 		});
 
 		viewerInstanceRef.current = viewer;
 
 		const annotate = Annotorious(viewer, {});
-		setAnno(annotate);
+		setAnnotorious(annotate);
 
 		annotate.on('createAnnotation', (annotation) => {
-			console.log('createAnnotation', annotation);
 			setAnnotations((prev) => [...prev, annotation]);
-		});
-
-		annotate.on('updateAnnotation', (annotation) => {
-			setAnnotations((prev) => prev.map((a) => (a.id === annotation.id ? annotation : a)));
-		});
-
-		annotate.on('deleteAnnotation', (annotation) => {
-			setAnnotations((prev) => prev.filter((a) => a.id !== annotation.id));
 		});
 
 		// Setup stars
@@ -94,11 +85,8 @@ export default function App() {
 	useEffect(() => {
 		const viewer = viewerInstanceRef.current;
 		const osdEl = osdContainerRef.current;
-		const marsEl = marsContainerRef.current;
 
 		function showOSD() {
-			marsEl.style.display = 'none';
-			marsEl.innerHTML = '';
 			osdEl.style.display = 'block';
 			viewer.viewport && viewer.viewport.goHome(true);
 			viewer.forceRedraw();
@@ -107,7 +95,6 @@ export default function App() {
 		function showMarsIframe() {
 			osdEl.style.display = 'none';
 			starApiRef.current.clearStarOverlays();
-			marsEl.style.display = 'block';
 		}
 
 		if (selected === UNWISE) {
@@ -265,49 +252,24 @@ export default function App() {
 
 	return (
 		<div className="app-container">
-			{/* --- Controls --- */}
 			<div className="controls-panel">
-				<div className="radio-group">
-					<div className="radio-item">
-						<input
-							type="radio"
-							id="unwise"
-							name="viewer_select"
-							value={UNWISE}
-							checked={selected === UNWISE}
-							onChange={() => setSelected(UNWISE)}
-						/>
-						<label htmlFor="unwise">Unwise Neo6</label>
-					</div>
-
-					<div className="radio-item">
-						<input
-							type="radio"
-							id="andromeda"
-							name="viewer_select"
-							value={ANDROMEDA}
-							checked={selected === ANDROMEDA}
-							onChange={() => setSelected(ANDROMEDA)}
-						/>
-						<label htmlFor="andromeda">Andromeda Galaxy</label>
-					</div>
-
-					<div className="radio-item">
-						<input
-							type="radio"
-							id="mars"
-							name="viewer_select"
-							value={MARS}
-							checked={selected === MARS}
-							onChange={() => setSelected(MARS)}
-						/>
-						<label htmlFor="mars">Mars</label>
-					</div>
-				</div>
-
-				{/* --- Search UI --- */}
 				<div className="search-container">
 					<div className="search-input-group">
+                        <div className="dropdown-group">
+                            <label htmlFor="viewer-select" className="dropdown-label">
+                                Select Map:
+                            </label>
+                            <select
+                                id="viewer-select"
+                                className="viewer-dropdown"
+                                value={selected}
+                                onChange={(e) => setSelected(e.target.value)}
+                            >
+                                <option value={UNWISE}>unWISE NEO6</option>
+                                <option value={ANDROMEDA}>Andromeda Galaxy</option>
+                                <option value={MARS}>Mars</option>
+                            </select>
+                        </div>
 						<input
 							type="text"
 							className="search-input"
@@ -346,14 +308,16 @@ export default function App() {
 					className="map-canvas"
 				></div>
 
-				{/* --- Mars map overlay --- */}
 				{selected === MARS && <MarsAnnotationMap />}
-
-				<div
-					id="mars-frame-container"
-					ref={marsContainerRef}
-					className="mars-container"
-				></div>
+                <div className="viewer-source-text">
+                    {selected === ANDROMEDA ? (
+                        <span>ESA/Hubble</span>
+                    ) : selected === UNWISE ? (
+                        <span>
+                            unWISE / NASA/JPL-Caltech / D. Lang (Perimeter Institute)
+                        </span>
+                    ) : null}
+                </div>
 			</div>
 		</div>
 	);
