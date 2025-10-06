@@ -475,6 +475,12 @@ export default function App() {
                     className="map-canvas"
                 ></div>
 
+                {/* --- Story Mode Button --- */}
+                <button className="story-mode-btn" onClick={() => console.log('Story Mode clicked')}>
+                    <span className="story-icon">📖</span>
+                    <span className="story-text">Story Mode</span>
+                </button>
+
                 {/* --- Mars map overlay --- */}
                 {selected === MARS && <MarsAnnotationMap />}
                 <div className="viewer-source-text">

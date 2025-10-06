@@ -1,1 +1,0 @@
-import{r as i,b as t,cF as h,Y as l,bv as d}from"./index-BCRx-hwS.js";const b=s=>{let e=class extends s{initialize(){this.addHandles(h(()=>this.layer,"refresh",r=>{this.doRefresh(r.dataChanged).catch(a=>{l(a)||d.getLogger(this).error(a)})}),"RefreshableLayerView")}};return e=i([t("esri.views.layers.RefreshableLayerView")],e),e};export{b as i};
