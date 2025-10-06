@@ -91,7 +91,6 @@ const MarsAnnotationMap = () => {
                 layers: [ctxLayer, annotationsLayer, cratersLayer],
             });
 
-            // Initialize the 3D scene view
             view = new SceneView({
                 container: mapRef.current,
                 map: map,
@@ -106,6 +105,12 @@ const MarsAnnotationMap = () => {
                     },
                     heading: 0,
                     tilt: 33,
+                },
+                environment: {
+                    background: { type: "color", color: [0, 0, 0, 1] },
+                    starsEnabled: false,
+                    atmosphereEnabled: false,
+                    lighting: { type: "virtual" },
                 },
             });
 
@@ -198,7 +203,7 @@ const MarsAnnotationMap = () => {
                     className="esri-button esri-button--primary"
                     onClick={handleStartAnnotation}
                 >
-                    Start Annotating Polygon
+                    Create Label
                 </button>
             </div>
         </div>
