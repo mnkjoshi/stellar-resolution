@@ -8,7 +8,7 @@ import MarsAnnotationMap from "./mars.jsx";
 const UNWISE = "unwise";
 const ANDROMEDA = "andromeda";
 const MARS = "mars";
-const BACKEND_URL = "http://localhost:3001";
+const BACKEND_URL = "https://stellar-resolution.onrender.com";
 
 export default function App() {
     const osdContainerRef = useRef(null);
@@ -19,9 +19,6 @@ export default function App() {
     });
 
     const [selected, setSelected] = useState(UNWISE);
-    const [annotorious, setAnnotorious] = useState(null);
-    const [annotations, setAnnotations] = useState([]);
-
     const [searchQuery, setSearchQuery] = useState("");
     const [statusMessage, setStatusMessage] = useState("");
     const [resultsVisible, setResultsVisible] = useState(false);
@@ -65,35 +62,34 @@ export default function App() {
         });
 
         viewerInstanceRef.current = viewer;
-
         const annotate = Annotorious(viewer, {});
-        setAnnotorious(annotate);
 
-        const fetchAnnotations = async () => {
-            const res = await fetch(`${BACKEND_URL}/getLabels`);
+        const fetchAnnotations = async (mapKey) => {
+            const res = await fetch(`${BACKEND_URL}/${mapKey}/getLabels`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const annotations = await res.json();
+            console.log('Fetched annotations:', annotations);
             annotations.forEach(a => annotate.addAnnotation(a));
-        }
-        fetchAnnotations();
+        };
+        fetchAnnotations(selected);
 
 		annotate.on('createAnnotation', async (annotation) => {
-            const res = await fetch(`${BACKEND_URL}/addLabel`, {
+            const res = await fetch(`${BACKEND_URL}/${selected}/addLabel`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(annotation),
 			});
-			// const result = await res.json();
-            // console.log('Label creation result:', result);
+			const result = await res.json();
+            console.log('Label creation result:', result);
 		});
 
 		// annotate.on("updateAnnotation", async (updated, previous) => {
         //     try {
         //         const id = (updated.id || "").toString();
-        //         const res = await fetch(`${BACKEND_URL}/updateLabel/${encodeURIComponent(id)}`, {
+        //         const res = await fetch(`${BACKEND_URL}/${selected}/updateLabel/${encodeURIComponent(id)}`, {
         //             method: "POST",
         //             headers: { "Content-Type": "application/json" },
-        //             body: JSON.stringify(updated), // send full Web Annotation object
+        //             body: JSON.stringify(updated),
         //         });
 
         //         if (!res.ok) {
@@ -111,7 +107,7 @@ export default function App() {
 		// annotate.on('deleteAnnotation', async (annotation) => {
         //     try {
         //         const id = (annotation.id || "").toString();
-        //         const res = await fetch(`${BACKEND_URL}/deleteLabel/${encodeURIComponent(id)}`, {
+        //         const res = await fetch(`${BACKEND_URL}/${selected}/deleteLabel/${encodeURIComponent(id)}`, {
         //             method: "DELETE",
         //         });
         //         const result = await res.json();
@@ -131,7 +127,7 @@ export default function App() {
                 viewer.destroy();
             } catch (e) {}
         };
-    }, []);
+    }, [selected]);
 
     /** -------- Toggle source on selection ---------- */
     useEffect(() => {
@@ -474,6 +470,12 @@ export default function App() {
                     ref={osdContainerRef}
                     className="map-canvas"
                 ></div>
+
+                {/* --- Story Mode Button --- */}
+                <button className="story-mode-btn" onClick={() => console.log('Story Mode clicked')}>
+                    <span className="story-icon">📖</span>
+                    <span className="story-text">Story Mode</span>
+                </button>
 
                 {/* --- Mars map overlay --- */}
                 {selected === MARS && <MarsAnnotationMap />}

@@ -49,7 +49,7 @@ export function setupStarOverlays(viewer) {
                 return;
             }
 
-            const url = `http://localhost:3001/api/stars?ralo=${ralo}&rahi=${rahi}&declo=${declo}&dechi=${dechi}`;
+            const url = `https://stellar-resolution.onrender.com/api/stars?ralo=${ralo}&rahi=${rahi}&declo=${declo}&dechi=${dechi}`;
 
             const response = await fetch(url);
             const data = await response.json();
