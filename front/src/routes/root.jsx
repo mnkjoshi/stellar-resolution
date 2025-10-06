@@ -150,10 +150,20 @@ export default function Root() {
     return (
         <div className="landing-main" id="landing-main">
             <canvas ref={canvasRef} className="outerspace" />
-            <img className="landing-logo" src="../logoT.png" alt="Stellar Resolution Logo" />
-            <p className="landing-title"> Stellar Resolution </p>
-            <p className="landing-subtitle"> Your Gateway to the Stars </p>
-            <button className="landing-button" onClick={() => navigate("/app")}>Take-off</button>
+            
+            <div className="landing-content">
+                <img className="landing-logo" src="../logoT.png" alt="Stellar Resolution Logo" />
+                <h1 className="landing-title">Stellar Resolution</h1>
+                <p className="landing-subtitle">Your Gateway to the Stars</p>
+                <button className="landing-button" onClick={() => navigate("/app")}>
+                    Take-off
+                    <span className="button-icon">🚀</span>
+                </button>
+            </div>
+            
+            <div className="landing-footer">
+                <p>Explore the cosmos with advanced astronomical tools</p>
+            </div>
         </div>
     );
 }
